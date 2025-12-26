@@ -75,11 +75,14 @@ class SimpleTcpClient
         udpThread.Start();
 
         bool firstConnect = true;
-        while (!exitRequested) // === outer RECONNECT loop ===
+        int retryCount = 0;
+        const int maxRetries = 3;
+        while (!exitRequested)
         {
             TcpClient tcp = null;
             StreamReader sr = null;
             StreamWriter sw = null;
+            bool connectedOk = false; 
 
             try
             {
@@ -104,16 +107,13 @@ class SimpleTcpClient
                 {
                     Console.WriteLine($"[SYS] You are logged in as {name} | Role: {role}" +
                         (role == "PLAY" ? $" | Fighter: {fighter}" : ""));
+                    Console.WriteLine("[SYS] Connected. Type messages (QUIT to exit).");
                 }
-                else
-                {
-                    // stay quiet on reconnect (no banner / no extra noise)
-                    // Console.WriteLine("[SYS] Reconnected."); // optional
-                }
-
                 firstConnect = false;
-                serverAlive = true;
 
+                serverAlive = true;
+                connectedOk = true;          // handshake completed
+                retryCount = 0;              // reset consecutive failures
 
                 // background reader – marks serverAlive=false on disconnect
                 var readerThread = new Thread(() =>
@@ -159,7 +159,8 @@ class SimpleTcpClient
             }
             catch
             {
-                Console.WriteLine("[SYS] Unable to connect. Will retry...");
+                // connection failed before handshake
+                Console.WriteLine($"[SYS] Unable to connect (attempt {retryCount + 1}/{maxRetries}).");
             }
             finally
             {
@@ -170,14 +171,27 @@ class SimpleTcpClient
 
             if (exitRequested) break;
 
-            // wait 3 seconds before trying again
-            for (int i = 3; i > 0 && !exitRequested; i--)
+            // If we’re here, either connect failed or we disconnected.
+            // Count this as a retry attempt and maybe exit.
+            if (!connectedOk || !serverAlive)
             {
-                Console.Write($"\r[SYS] Reconnecting in {i}s...   ");
-                Thread.Sleep(1000);
+                retryCount++;
+                if (retryCount >= maxRetries)
+                {
+                    Console.WriteLine("[SYS] Max retries reached. Exiting.");
+                    break;
+                }
+
+                // wait 3 seconds before trying again
+                for (int i = 3; i > 0 && !exitRequested; i--)
+                {
+                    Console.Write($"\r[SYS] Reconnecting in {i}s...   ");
+                    Thread.Sleep(1000);
+                }
+                Console.WriteLine("\r[SYS] Reconnecting now...        ");
             }
-            Console.WriteLine("\r[SYS] Reconnecting now...        ");
         }
+
 
         Console.WriteLine("[SYS] Client exiting. Bye!");
     }
