@@ -89,4 +89,42 @@ CNP Project/
    cd Client
    dotnet run TcpClient.cs
    ```
-   
+
+## How to Test Main Features
+
+1) **Join & Role**
+  - Start the server, then start 2+ clients.
+  - Enter a name; choose `PLAY` for at least two clients (others may `SPECTATE`).
+2) **Fighter Selection**
+  - When asked, choose one: 🕷 spider (web), 🤖 robot (star), 🧙 wizard (ice), 🥷 ninja   (bang), 🐉 dragon (fire).
+3) **Turn System**
+  - Watch **UDP** messages `ROUND n` and `TURN <name>`.
+  - Only the named player can act; others can chat or wait.
+4) **Movement**
+  - On your turn, type `MOVE <cell>`.
+  - Other players see `<name> MOVED` over UDP.
+5) **Attacks**
+  - On your turn, attack with your trigger word (e.g. `bang h7` for ninja)
+  - If someone is on that cell: expect `HIT <attacker> <emoji> <target>` and `HP <target> <value>`.
+  - If empty: `MISS <attacker> <emoji>`.
+6) **Status**
+  - Type `STATUS` to see your current cell and HP.
+7) **Pass**
+  - Type `PASS` to skip your turn.
+8) **Death & Win**
+  - Each hit deals 10HP. At `0 HP` you will see `DEAD <name>`.
+  - When only one player remains, a winner banner will shown.
+9) **Spectator Mode**
+  - Start a client as `SPECTATE`. You will see all UDP events and can chat, but can't move or attack.
+
+## Known Issues / Limitations
+  - UDP multicast may be blocked by local firewall/router. TCP gameplay still works; UDP events won’t appear until multicast is allowed.
+  - Console emojis require UTF-8 support. If you see boxes/garbled icons, ensure the console encoding is UTF-8.
+  - Server restarts: the server does not persist board state (HP/position). On reconnect, players re-enter with random spawn.
+  - Same-host UDP: Multiple clients on one machine must enable socket port reuse. If only the first client sees UDP, verify ReuseAddress + Bind happen before JoinMulticastGroup.
+
+## Credits
+  - **Implementation**: Student project for Computer Network Programming lecture.
+  - **Patterns**: Threaded TCP server/client patterns inspired by `C# Network Programming
+ by Richard Blum (2003)` textbook approaches.
+  - **AI Assistance**: Built with help from ChatGPT (GPT-5 Thinking).
