@@ -404,7 +404,6 @@ class ConnectionThread
     {
         if (!GameBoard.TryAttack(attackerId, targetCell, out var targetId, out var newHp, out var killed))
         {
-            SendTo(attackerId, $"SYS: Bad attack. Usage: {meta.Trigger} h7");
             return;
         }
 
@@ -427,14 +426,6 @@ class ConnectionThread
                 AnnounceWinner(last);
             }
         }
-    }
-
-    private static void SendTo(int playerId, string line)
-    {
-        StreamWriter? w = null;
-        lock (clientsLock)
-            if (clients.TryGetValue(playerId, out var info)) w = info.Writer;
-        try { w?.WriteLine(line); } catch { }
     }
 
     private static void UdpSend(string s)
@@ -510,11 +501,6 @@ class ConnectionThread
         "lol"   => "😂 lol",
         _       => "💬"
     };
-
-    private void CleanupAndClose()
-    {
-        try { client.Close(); } catch { }
-    }
 
     private sealed class ClientInfo
     {
