@@ -16,8 +16,10 @@ class ThreadedTcpSrvr
 
     public ThreadedTcpSrvr()
     {
-        listener = new TcpListener(IPAddress.Parse("127.0.0.1"), 9050);
-        Console.CancelKeyPress += (s, e) =>
+    var bindIp = Environment.GetEnvironmentVariable("SERVER_BIND") ?? "127.0.0.1";
+    listener = new TcpListener(IPAddress.Any, 9050);
+  
+    Console.CancelKeyPress += (s, e) =>
         {
             e.Cancel = true; // prevent hard kill
             Stop();

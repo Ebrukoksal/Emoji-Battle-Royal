@@ -24,7 +24,7 @@ A turn-based, text-mode battle royale. Players join as 🕷/🤖/🧙/🥷/🐉,
 ## Architecture
 
 **Server**
-- TCP listener: `127.0.0.1:9050` (commands, chat, `STATUS`)
+- TCP listener: `0.0.0.0:9050` (commands, chat, `STATUS`)
 - UDP multicast sender: `239.0.0.222:9051`  
   Events: `SPAWNED`, `MOVED`, `HIT`, `MISS`, `HP`, `DEAD`, `ROUND`, `TURN`, `WINNER`, `PASSED`, `SPECTATE`
 - `GameBoard`: thread-safe 8×8 (`a1..h8`) positions + HP + move/attack rules
@@ -32,17 +32,19 @@ A turn-based, text-mode battle royale. Players join as 🕷/🤖/🧙/🥷/🐉,
 
 **Client**
 - TCP: background reader + stdin writer
-- UDP: multicast listener (port reuse; loopback enabled)
+- UDP: multicast listener (ReuseAddress enabled)
 - On every connect: sends `name` → `role (PLAY|SPECTATE)` → `fighter` (if PLAY)
 
 ---
 
 ## Requirements / Dependencies
 
-- .NET SDK **6.0+**
+- .NET SDK **8.0+**
+- Docker Desktop
 - Console that supports **UTF-8** (for emoji output)
 - Local firewall/router allowing **UDP multicast** `239.0.0.222:9051`
 - No external NuGet packages
+
 
 ---
 
@@ -50,34 +52,43 @@ A turn-based, text-mode battle royale. Players join as 🕷/🤖/🧙/🥷/🐉,
 ```text
 CNP Project/
 ├─ README.md
-├─ .gitignore 
+├─ Dockerfile.server
+├─ Dockerfile.client
+├─ .gitignore
 ├─ Common/
-│  └─ Utilities.cs 
+│  └─ Utilities.cs
 ├─ Server/
-│  ├─ Server.cs  
+│  ├─ Server.cs
 │  ├─ GameBoard.cs
 │  └─ Server.csproj
 └─ Client/
-   └─ TcpClient.cs
+   ├─ Client.cs
+   └─ Client.csproj
+
 ```
 ---
 
 ## Setup
 
 1) **Clone or copy** the project into a local folder (e.g., `Emoji Battle Royal`).
-2) Ensure **.NET SDK 6.0+** is installed:
+2) Ensure **.NET SDK 8.0+** is installed:
    ```bash
    dotnet --version
    ```
 ---
 
-## How to Run
-1) **Start the Server**
+## How to Run (Docker – Recommended)
+1) **Build Docker Images(once)**
+  From the project root:
+   ```bash
+   docker build -t cnp-server -f Dockerfile.server .
+   docker build -t cnp-client -f Dockerfile.client .
+   ```
+2) **Start the Server**
    
    In the powershell:
    ```bash
-   cd Server
-   dotnet run
+   docker run -p 9050:9050 cnp-server
    ```
   
    You should see: Waiting for clients...
@@ -86,8 +97,29 @@ CNP Project/
    
    Open a new terminal for each client:
    ```bash
+   docker run -it cnp-client
+   ```
+
+## How to Run (Local)
+
+1) **Start the Server**
+   
+   In the powershell:
+   ```bash
+   cd Server
+   dotnet run
+
+   ```
+  
+   You should see: Waiting for clients...
+   
+2) **Start one or more Clients**
+   
+   Open a new terminal for each client:
+   ```bash
    cd Client
-   dotnet run TcpClient.cs
+   dotnet run
+
    ```
 
 ## How to Test Main Features

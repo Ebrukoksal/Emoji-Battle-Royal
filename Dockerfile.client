@@ -1,0 +1,12 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+WORKDIR /app
+
+COPY . .
+
+# 👇 explicitly restore the CLIENT project
+RUN dotnet restore Client/Client.csproj
+
+RUN dotnet build Client/Client.csproj -c Release
+
+CMD ["dotnet", "run", "--project", "Client/Client.csproj"]

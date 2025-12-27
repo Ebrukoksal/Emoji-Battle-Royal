@@ -1,0 +1,14 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0
+
+WORKDIR /app
+
+COPY . .
+
+# 👇 explicitly restore the SERVER project
+RUN dotnet restore Server/Server.csproj
+
+RUN dotnet build Server/Server.csproj -c Release
+
+EXPOSE 9050
+
+CMD ["dotnet", "run", "--project", "Server/Server.csproj"]
