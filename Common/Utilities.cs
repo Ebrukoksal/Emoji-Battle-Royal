@@ -9,33 +9,17 @@ namespace Common
 {
     public static class Utilities
     {
-        // ---------- UDP config ----------
         public const string Multicast = "239.0.0.222";
         public const int UdpPort = 9051;
 
         public static UdpClient CreateUdpSender() => new UdpClient();
-        public static UdpClient CreateUdpReceiver()
-        {
-            var u = new UdpClient(UdpPort);
-            u.JoinMulticastGroup(IPAddress.Parse(Multicast));
-            return u;
-        }
 
-        public static void UdpSend(UdpClient udp, string msg)
-        {
-            var ep = new IPEndPoint(IPAddress.Parse(Multicast), UdpPort);
-            var b = Encoding.UTF8.GetBytes(msg);
-            udp.Send(b, b.Length, ep);
-        }
-
-        // ---------- UTF-8 stream helpers ----------
         public static StreamReader Utf8Reader(NetworkStream ns) =>
             new StreamReader(ns, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: 1024, leaveOpen: true);
 
         public static StreamWriter Utf8Writer(NetworkStream ns) =>
             new StreamWriter(ns, new UTF8Encoding(encoderShouldEmitUTF8Identifier: false)) { AutoFlush = true };
 
-        // ---------- Cells & small parsers ----------
         public static bool TryParseCell(string s, out string cell)
         {
             cell = "";
@@ -52,7 +36,6 @@ namespace Common
             return true;
         }
 
-        // "MOVE h5"
         public static bool IsMoveCommand(string line, out string cell)
         {
             cell = "";
@@ -62,7 +45,6 @@ namespace Common
             return TryParseCell(rest, out cell);
         }
 
-        // "attack h7" or "attack to h7"
         public static bool IsAttackCommand(string line, out string cell)
         {
             cell = "";
@@ -75,7 +57,6 @@ namespace Common
             return TryParseCell(rest, out cell);
         }
 
-        // "<trigger> h7" (e.g., "bang h7")
         public static bool IsTriggerAttack(string line, string trigger, out string cell)
         {
             cell = "";
@@ -86,15 +67,7 @@ namespace Common
             return TryParseCell(parts[1], out cell);
         }
 
-        // ---------- Health bar ----------
-        public static string HealthBar(int hp)
-        {
-            hp = Math.Clamp(hp, 0, 100);
-            int filled = hp / 10;
-            return "[" + new string('#', filled) + new string('-', 10 - filled) + $"] {hp}/100";
-        }
 
-        // ---------- Fighters (shared table) ----------
         public sealed class FighterMeta
         {
             public string Name = "";

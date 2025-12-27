@@ -470,7 +470,7 @@ class ConnectionThread
         }
     }
 
-    // Name parsing (we also accept legacy "JOIN <name>" if someone sends it)
+    // Name parsing 
     private static bool TryParseJoin(string? line, out string name)
     {
         name = "";

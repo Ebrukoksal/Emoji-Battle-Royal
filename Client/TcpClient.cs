@@ -171,8 +171,6 @@ class SimpleTcpClient
 
             if (exitRequested) break;
 
-            // If we’re here, either connect failed or we disconnected.
-            // Count this as a retry attempt and maybe exit.
             if (!connectedOk || !serverAlive)
             {
                 retryCount++;
