@@ -16,12 +16,11 @@ class ThreadedTcpSrvr
 
     public ThreadedTcpSrvr()
     {
-    var bindIp = Environment.GetEnvironmentVariable("SERVER_BIND") ?? "127.0.0.1";
-    listener = new TcpListener(IPAddress.Any, 9050);
+    listener = new TcpListener(IPAddress.Parse("127.0.0.1"), 9050);
   
     Console.CancelKeyPress += (s, e) =>
         {
-            e.Cancel = true; // prevent hard kill
+            e.Cancel = true; 
             Stop();
         };
 
@@ -33,7 +32,7 @@ class ThreadedTcpSrvr
         {
             try
             {
-                var client = listener.AcceptTcpClient(); // blocking
+                var client = listener.AcceptTcpClient(); 
                 var worker = new ConnectionThread(client);
                 var thread = new Thread(worker.HandleConnection) { IsBackground = true };
                 thread.Start();

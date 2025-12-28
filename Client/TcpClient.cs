@@ -11,10 +11,9 @@ class SimpleTcpClient
 
     public static void Main(string[] args)
     {
-        string host = args.Length > 0 ? args[0] : "host.docker.internal";
+        string host = args.Length > 0 ? args[0] : "127.0.0.1";
         int port = args.Length > 1 ? int.Parse(args[1]) : 9050;
 
-        string ifaceArg = FindArgValue(args, "--iface");
 
         Console.InputEncoding = Encoding.UTF8;
         Console.OutputEncoding = Encoding.UTF8;
@@ -41,56 +40,36 @@ class SimpleTcpClient
         bool exitRequested = false;
         Console.CancelKeyPress += (s, e) => { e.Cancel = true; exitRequested = true; };
 
-        // =========================================================
-        // UDP MULTICAST (DISABLED INSIDE DOCKER)
-        // =========================================================
-
-        bool runningInDocker =
-            Environment.GetEnvironmentVariable("DOTNET_RUNNING_IN_CONTAINER") == "true";
-
-        if (!runningInDocker)
+        var udpThread = new Thread(new ThreadStart(() =>
         {
-            var udpThread = new Thread(() =>
+            try
             {
-                try
-                {
-                    var group = IPAddress.Parse("239.0.0.222");
-                    int udpPort = 9051;
+                var group = IPAddress.Parse("239.0.0.222");
+                int port  = 9051;
 
-                    IPAddress localIface = ResolveLocalInterface(ifaceArg);
+                // 1) Create socket that allows multiple listeners on the same port
+                var u = new UdpClient();
+                u.ExclusiveAddressUse = false;
 
-                    var u = new UdpClient();
-                    u.ExclusiveAddressUse = false;
-                    u.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                    u.Client.Bind(new IPEndPoint(IPAddress.Any, udpPort));
+                //2) Allow address/port reuse and bind BEFORE JoinMulticastGroup
+                u.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                u.Client.Bind(new IPEndPoint(IPAddress.Any, port));
+                   // 3) Join the multicast group (optionally on a specific local interface)
+                u.JoinMulticastGroup(group);
 
-                    u.JoinMulticastGroup(group, localIface);
-                    u.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastLoopback, true);
-
+                    // 4) Ensure to get looped-back packets when sender & receivers are same host
+                u.Client.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.MulticastLoopback, true);
                     var any = new IPEndPoint(IPAddress.Any, 0);
-                    while (true)
-                    {
-                        var data = u.Receive(ref any);
-                        Console.WriteLine("[UDP] " + Encoding.UTF8.GetString(data));
-                    }
-                }
-                catch
+                while (true)
                 {
-                    // ignore on shutdown
+                    var data = u.Receive(ref any);
+                    Console.WriteLine("[UDP] " + Encoding.UTF8.GetString(data));
                 }
-            })
-            { IsBackground = true };
-
+             }
+            catch { /* exit on shutdown */ }
+            }));
+            udpThread.IsBackground = true;
             udpThread.Start();
-        }
-        else
-        {
-            Console.WriteLine("[SYS] UDP multicast disabled (Docker environment)");
-        }
-
-        // =========================================================
-        // TCP CONNECTION LOOP
-        // =========================================================
 
         bool firstConnect = true;
         int retryCount = 0;
@@ -105,12 +84,11 @@ class SimpleTcpClient
 
             try
             {
-                Console.WriteLine($"[SYS] Connecting to {host}:{port} ...");
                 tcp = new TcpClient(host, port);
                 Console.WriteLine("[SYS] TCP connection established");
 
                 var ns = tcp.GetStream();
-                sr = new StreamReader(ns, Encoding.UTF8, false);
+                sr = new StreamReader(ns, Encoding.UTF8, detectEncodingFromByteOrderMarks: false);
                 sw = new StreamWriter(ns, new UTF8Encoding(false)) { AutoFlush = true };
 
                 string? banner = sr.ReadLine();
@@ -207,30 +185,4 @@ class SimpleTcpClient
         Console.WriteLine("[SYS] Client exiting. Bye!");
     }
 
-    // =========================================================
-    // HELPERS
-    // =========================================================
-
-    private static string FindArgValue(string[] args, string key)
-    {
-        for (int i = 0; i < args.Length - 1; i++)
-            if (string.Equals(args[i], key, StringComparison.OrdinalIgnoreCase))
-                return args[i + 1];
-        return string.Empty;
-    }
-
-    private static IPAddress ResolveLocalInterface(string ifaceArg)
-    {
-        if (!string.IsNullOrWhiteSpace(ifaceArg) && IPAddress.TryParse(ifaceArg, out var ip))
-            return ip;
-
-        var host = Dns.GetHostEntry(Dns.GetHostName());
-        foreach (var addr in host.AddressList)
-        {
-            if (addr.AddressFamily == AddressFamily.InterNetwork && !IPAddress.IsLoopback(addr))
-                return addr;
-        }
-
-        return IPAddress.Loopback;
-    }
 }

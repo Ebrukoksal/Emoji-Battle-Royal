@@ -24,7 +24,7 @@ A turn-based, text-mode battle royale. Players join as 🕷/🤖/🧙/🥷/🐉,
 ## Architecture
 
 **Server**
-- TCP listener: `0.0.0.0:9050` (commands, chat, `STATUS`)
+- TCP listener: `127.0.0.1:9050` (commands, chat, `STATUS`)
 - UDP multicast sender: `239.0.0.222:9051`  
   Events: `SPAWNED`, `MOVED`, `HIT`, `MISS`, `HP`, `DEAD`, `ROUND`, `TURN`, `WINNER`, `PASSED`, `SPECTATE`
 - `GameBoard`: thread-safe 8×8 (`a1..h8`) positions + HP + move/attack rules
@@ -40,7 +40,6 @@ A turn-based, text-mode battle royale. Players join as 🕷/🤖/🧙/🥷/🐉,
 ## Requirements / Dependencies
 
 - .NET SDK **8.0+**
-- Docker Desktop
 - Console that supports **UTF-8** (for emoji output)
 - Local firewall/router allowing **UDP multicast** `239.0.0.222:9051`
 - No external NuGet packages
@@ -52,8 +51,6 @@ A turn-based, text-mode battle royale. Players join as 🕷/🤖/🧙/🥷/🐉,
 ```text
 CNP Project/
 ├─ README.md
-├─ Dockerfile.server
-├─ Dockerfile.client
 ├─ .gitignore
 ├─ Common/
 │  └─ Utilities.cs
@@ -76,29 +73,6 @@ CNP Project/
    dotnet --version
    ```
 ---
-
-## How to Run (Docker – Recommended)
-1) **Build Docker Images(once)**
-  From the project root:
-   ```bash
-   docker build -t cnp-server -f Dockerfile.server .
-   docker build -t cnp-client -f Dockerfile.client .
-   ```
-2) **Start the Server**
-   
-   In the powershell:
-   ```bash
-   docker run -p 9050:9050 cnp-server
-   ```
-  
-   You should see: Waiting for clients...
-   
-3) **Start one or more Clients**
-   
-   Open a new terminal for each client:
-   ```bash
-   docker run -it cnp-client
-   ```
 
 ## How to Run (Local)
 
